@@ -2,7 +2,6 @@ const axios = require("axios");
 
 const generateAI = async (req, res) => {
   try {
-
     const { prompt } = req.body;
 
     if (!prompt) {
@@ -12,21 +11,31 @@ const generateAI = async (req, res) => {
       });
     }
 
-   const result = await axios.post(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-  {
-    contents: [
+    // ✅ use stable model
+    const result = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
-        parts: [
-          { text: prompt }
+        contents: [
+          {
+            parts: [
+              { text: prompt }
+            ]
+          }
         ]
+      },
+      {
+        headers: {
+          "Content-Type": "application/json"
+        }
       }
-    ]
-  }
-);
+    );
 
+    console.log("Full Gemini response:", JSON.stringify(result.data, null, 2));
+
+    // ✅ safer extraction
     const text =
-      result?.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      result?.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response from AI";
 
     res.send({
       success: true,
@@ -39,7 +48,8 @@ const generateAI = async (req, res) => {
 
     res.send({
       success: false,
-      message: "AI failed"
+      message: "AI failed",
+      error: err.response?.data || err.message
     });
   }
 };
